@@ -1,0 +1,184 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.3.5</version>
+        <relativePath/>
+    </parent>
+
+    <!-- ========================================= -->
+    <!-- Parent Project Information -->
+    <!-- ========================================= -->
+
+    <groupId>com.enterprise.platform</groupId>
+    <artifactId>enterprise-platform-parent</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>enterprise-platform-parent</name>
+    <description>
+        Enterprise Project &amp; Resource Management Platform
+    </description>
+
+    <!-- ========================================= -->
+    <!-- Modules -->
+    <!-- ========================================= -->
+
+    <modules>
+
+        <!-- Infrastructure -->
+        <module>infrastructure/config-server</module>
+        <module>infrastructure/discovery-server</module>
+        <module>infrastructure/api-gateway</module>
+
+        <!-- Services -->
+        <module>services/auth-service</module>
+<!--        <module>services/project-service</module>-->
+<!--        <module>services/sprint-service</module>-->
+<!--        <module>services/task-service</module>-->
+<!--        <module>services/resource-service</module>-->
+<!--        <module>services/analytics-service</module>-->
+<!--        <module>services/notification-service</module>-->
+<!--        <module>services/audit-service</module>-->
+
+<!--        &lt;!&ndash; Shared Libraries &ndash;&gt;-->
+<!--        <module>shared/common-security</module>-->
+<!--        <module>shared/common-exception</module>-->
+<!--        <module>shared/common-dto</module>-->
+<!--        <module>shared/common-kafka</module>-->
+<!--        <module>shared/common-logging</module>-->
+
+    </modules>
+
+    <!-- ========================================= -->
+    <!-- Properties -->
+    <!-- ========================================= -->
+
+    <properties>
+
+        <!-- Java -->
+        <java.version>21</java.version>
+
+        <!-- Spring -->
+        <spring.boot.version>3.3.5</spring.boot.version>
+        <spring.cloud.version>2023.0.3</spring.cloud.version>
+
+        <!-- Libraries -->
+        <mapstruct.version>1.5.5.Final</mapstruct.version>
+        <lombok.version>1.18.34</lombok.version>
+        <jjwt.version>0.12.5</jjwt.version>
+
+        <!-- Encoding -->
+        <project.build.sourceEncoding>
+            UTF-8
+        </project.build.sourceEncoding>
+
+        <!-- Maven -->
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+
+    </properties>
+
+    <!-- ========================================= -->
+    <!-- Dependency Management -->
+    <!-- ========================================= -->
+
+    <dependencyManagement>
+
+        <dependencies>
+
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring.cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+        </dependencies>
+
+    </dependencyManagement>
+
+    <!-- ========================================= -->
+    <!-- Build Configuration -->
+    <!-- ========================================= -->
+
+    <build>
+
+        <pluginManagement>
+
+            <plugins>
+
+                <!-- Spring Boot Plugin -->
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                </plugin>
+
+                <!-- Compiler Plugin -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.14.0</version>
+
+                    <configuration>
+
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
+
+                        <annotationProcessorPaths>
+
+                            <!-- Lombok -->
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombok.version}</version>
+                            </path>
+
+                            <!-- MapStruct -->
+                            <path>
+                                <groupId>org.mapstruct</groupId>
+                                <artifactId>mapstruct-processor</artifactId>
+                                <version>${mapstruct.version}</version>
+                            </path>
+
+                            <!-- Lombok MapStruct Binding -->
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok-mapstruct-binding</artifactId>
+                                <version>0.2.0</version>
+                            </path>
+
+                        </annotationProcessorPaths>
+
+                    </configuration>
+
+                </plugin>
+
+                <!-- Surefire Plugin -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>3.5.3</version>
+                </plugin>
+
+                <!-- Failsafe Plugin -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>3.5.3</version>
+                </plugin>
+
+            </plugins>
+
+        </pluginManagement>
+
+    </build>
+
+</project>
