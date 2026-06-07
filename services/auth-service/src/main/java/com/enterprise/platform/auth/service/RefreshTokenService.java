@@ -11,4 +11,8 @@ public interface RefreshTokenService {
 
     void revokeToken(String token);
 
+    RefreshToken rotateRefreshToken(RefreshToken oldToken);
+
+    void cleanupExpiredTokens();
+
 }
