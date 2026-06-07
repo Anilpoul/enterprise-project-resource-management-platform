@@ -13,7 +13,7 @@ public class AuthEventProducer {
 
     private static final String AUTH_TOPIC = "auth-events";
 
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final KafkaTemplate<String, AuthEvent> kafkaTemplate;
 
     public void publish(AuthEvent authEvent) {
 
@@ -25,7 +25,19 @@ public class AuthEventProducer {
         kafkaTemplate.send(
                 AUTH_TOPIC,
                 authEvent
-        );
+        ).whenComplete((result, ex) -> {
+
+            if (ex != null) {
+                log.error(
+                        "Kafka publish failed",
+                        ex
+                );
+            } else {
+                log.info(
+                        "Kafka message sent successfully"
+                );
+            }
+        });
     }
 
 }
