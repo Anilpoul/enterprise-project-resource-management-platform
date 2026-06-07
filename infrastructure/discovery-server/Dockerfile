@@ -1,8 +1,8 @@
-FROM eclipse-temurin:21-jdk
+FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
-COPY target/discovery-server-*.jar app.jar
+COPY infrastructure/discovery-server/target/discovery-server-*.jar app.jar
 
 EXPOSE 8761
 
