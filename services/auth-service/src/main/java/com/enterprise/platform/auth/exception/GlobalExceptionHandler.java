@@ -1,6 +1,7 @@
 package com.enterprise.platform.auth.exception;
 
 import com.enterprise.platform.auth.dto.response.ErrorResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -14,6 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
@@ -88,14 +90,21 @@ public class GlobalExceptionHandler {
             Exception ex
     ) {
 
-        ErrorResponse response = ErrorResponse.builder()
-                .success(false)
-                .message("Internal server error")
-                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                .timestamp(LocalDateTime.now())
-                .build();
+        log.error(
+                "Unhandled exception occurred",
+                ex
+        );
 
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+        ErrorResponse response =
+                ErrorResponse.builder()
+                        .success(false)
+                        .message("Internal server error")
+                        .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                        .timestamp(LocalDateTime.now())
+                        .build();
+
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(response);
     }
 
