@@ -20,10 +20,12 @@ import com.enterprise.platform.auth.service.AuthenticationService;
 import com.enterprise.platform.auth.service.RefreshTokenService;
 import com.enterprise.platform.auth.service.token.TokenBlacklistService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Set;
@@ -31,6 +33,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthenticationServiceImpl
         implements AuthenticationService {
 
@@ -94,17 +97,15 @@ public class AuthenticationServiceImpl
         RefreshToken refreshToken =
                 refreshTokenService.createRefreshToken(savedUser);
 
-        authEventProducer.publish(
-                AuthEvent.builder()
-                        .eventId(UUID.randomUUID())
-                        .eventType(
-                                AuthEventType.USER_REGISTERED
-                        )
-                        .email(savedUser.getEmail())
-                        .timestamp(LocalDateTime.now())
-                        .details("New user registered")
-                        .build()
-        );
+        publishAuthEvent(AuthEvent.builder()
+                .eventId(UUID.randomUUID())
+                .eventType(
+                        AuthEventType.USER_REGISTERED
+                )
+                .email(savedUser.getEmail())
+                .timestamp(LocalDateTime.now())
+                .details("New user registered")
+                .build());
 
         return AuthResponse.builder()
                 .accessToken(jwtToken)
@@ -127,18 +128,15 @@ public class AuthenticationServiceImpl
             );
 
         } catch (Exception ex) {
-
-            authEventProducer.publish(
-                    AuthEvent.builder()
-                            .eventId(UUID.randomUUID())
-                            .eventType(
-                                    AuthEventType.LOGIN_FAILED
-                            )
-                            .email(request.getEmail())
-                            .timestamp(LocalDateTime.now())
-                            .details("Invalid credentials")
-                            .build()
-            );
+            publishAuthEvent(AuthEvent.builder()
+                    .eventId(UUID.randomUUID())
+                    .eventType(
+                            AuthEventType.LOGIN_FAILED
+                    )
+                    .email(request.getEmail())
+                    .timestamp(LocalDateTime.now())
+                    .details("Invalid credentials")
+                    .build());
 
             throw new BadRequestException(
                     "Invalid credentials"
@@ -162,17 +160,16 @@ public class AuthenticationServiceImpl
         RefreshToken refreshToken =
                 refreshTokenService.createRefreshToken(user);
 
-        authEventProducer.publish(
-                AuthEvent.builder()
-                        .eventId(UUID.randomUUID())
-                        .eventType(
-                                AuthEventType.USER_LOGGED_IN
-                        )
-                        .email(user.getEmail())
-                        .timestamp(LocalDateTime.now())
-                        .details("User logged in")
-                        .build()
-        );
+        publishAuthEvent(AuthEvent.builder()
+                .eventId(UUID.randomUUID())
+                .eventType(
+                        AuthEventType.USER_LOGGED_IN
+                )
+                .email(user.getEmail())
+                .timestamp(LocalDateTime.now())
+                .details("User logged in")
+                .build());
+
         return AuthResponse.builder()
                 .accessToken(jwtToken)
                 .refreshToken(refreshToken.getToken())
@@ -182,22 +179,33 @@ public class AuthenticationServiceImpl
     }
 
     @Override
-    public AuthResponse refreshToken(String refreshTokenValue) {
+    @Transactional
+    public AuthResponse refreshToken(
+            String refreshTokenValue
+    ) {
 
         RefreshToken refreshToken =
                 refreshTokenService.verifyRefreshToken(
                         refreshTokenValue
                 );
 
+        RefreshToken newRefreshToken =
+                refreshTokenService.rotateRefreshToken(
+                        refreshToken
+                );
+
         User user = refreshToken.getUser();
 
-        String accessToken = jwtService.generateToken(
-                new CustomUserDetails(user)
-        );
+        String accessToken =
+                jwtService.generateToken(
+                        new CustomUserDetails(user)
+                );
 
         return AuthResponse.builder()
                 .accessToken(accessToken)
-                .refreshToken(refreshToken.getToken())
+                .refreshToken(
+                        newRefreshToken.getToken()
+                )
                 .tokenType("Bearer")
                 .expiresIn(86400L)
                 .build();
@@ -208,20 +216,35 @@ public class AuthenticationServiceImpl
             String refreshToken,
             String accessToken
     ) {
-        authEventProducer.publish(
-                AuthEvent.builder()
-                        .eventId(UUID.randomUUID())
-                        .eventType(
-                                AuthEventType.USER_LOGGED_OUT
-                        )
-                        .email("USER")
-                        .timestamp(LocalDateTime.now())
-                        .details("User logged out")
-                        .build()
-        );
+        publishAuthEvent(AuthEvent.builder()
+                .eventId(UUID.randomUUID())
+                .eventType(
+                        AuthEventType.USER_LOGGED_OUT
+                )
+                .email("USER")
+                .timestamp(LocalDateTime.now())
+                .details("User logged out")
+                .build());
+
         refreshTokenService.revokeToken(refreshToken);
 
         tokenBlacklistService.blacklistToken(accessToken);
+    }
+
+    private void publishAuthEvent(
+            AuthEvent event
+    ) {
+        try {
+
+            authEventProducer.publish(event);
+
+        } catch (Exception ex) {
+
+            log.error(
+                    "Failed to publish auth event",
+                    ex
+            );
+        }
     }
 
 }
