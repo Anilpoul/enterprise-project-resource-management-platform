@@ -30,6 +30,35 @@ services:
       - enterprise-network
 
   # =========================================
+  # USER POSTGRESQL
+  # =========================================
+
+  user-postgres:
+    image: postgres:16
+
+    container_name: user-postgres
+
+    environment:
+      POSTGRES_DB: ${USER_DB}
+      POSTGRES_USER: ${USER_DB_USER}
+      POSTGRES_PASSWORD: ${USER_DB_PASSWORD}
+
+    ports:
+      - "${USER_POSTGRES_PORT}:5432"
+
+    volumes:
+      - user_postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+    networks:
+      - enterprise-network
+
+  # =========================================
   # REDIS
   # =========================================
 
@@ -202,6 +231,38 @@ services:
     environment:
       JAVA_OPTS: "-Xms256m -Xmx512m"
 
+  # =========================================
+  # USER SERVICE
+  # =========================================
+
+  user-service:
+    build:
+      context: ../../
+      dockerfile: services/user-service/Dockerfile
+
+    container_name: user-service
+
+    depends_on:
+      user-postgres:
+        condition: service_healthy
+      config-server:
+        condition: service_started
+      discovery-server:
+        condition: service_started
+      kafka:
+        condition: service_started
+
+    ports:
+      - "${USER_SERVICE_PORT}:8082"
+
+    restart: unless-stopped
+
+    networks:
+      - enterprise-network
+
+    environment:
+      JAVA_OPTS: "-Xms256m -Xmx512m"
+
 # =========================================
 # VOLUMES
 # =========================================
@@ -209,6 +270,8 @@ services:
 volumes:
 
   postgres_data:
+
+  user_postgres_data:
 
   redis_data:
 
