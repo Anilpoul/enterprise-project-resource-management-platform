@@ -9,8 +9,8 @@ import com.enterprise.platform.auth.entity.RefreshToken;
 import com.enterprise.platform.auth.entity.Role;
 import com.enterprise.platform.auth.entity.User;
 import com.enterprise.platform.auth.exception.BadRequestException;
-import com.enterprise.platform.auth.kafka.event.AuthEvent;
-import com.enterprise.platform.auth.kafka.event.AuthEventType;
+import com.enterprise.platform.events.AuthEvent;
+import com.enterprise.platform.events.AuthEventType;
 import com.enterprise.platform.auth.kafka.producer.AuthEventProducer;
 import com.enterprise.platform.auth.repository.RoleRepository;
 import com.enterprise.platform.auth.repository.UserRepository;
@@ -99,9 +99,10 @@ public class AuthenticationServiceImpl
 
         publishAuthEvent(AuthEvent.builder()
                 .eventId(UUID.randomUUID())
-                .eventType(
-                        AuthEventType.USER_REGISTERED
-                )
+                .eventType(AuthEventType.USER_REGISTERED)
+                .userId(savedUser.getId())
+                .firstName(savedUser.getFirstName())
+                .lastName(savedUser.getLastName())
                 .email(savedUser.getEmail())
                 .timestamp(LocalDateTime.now())
                 .details("New user registered")

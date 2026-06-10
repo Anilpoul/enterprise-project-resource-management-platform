@@ -20,12 +20,12 @@
     <!-- Project -->
     <!-- ========================================= -->
 
-    <artifactId>auth-service</artifactId>
+    <artifactId>user-service</artifactId>
 
-    <name>auth-service</name>
+    <name>user-service</name>
 
     <description>
-        Authentication and Authorization Service
+        User Service
     </description>
 
     <!-- ========================================= -->
@@ -50,12 +50,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.enterprise.platform</groupId>
-            <artifactId>event-contracts</artifactId>
-            <version>${project.version}</version>
         </dependency>
 
         <!-- Validation -->
@@ -112,8 +106,6 @@
             <groupId>org.springframework.kafka</groupId>
             <artifactId>spring-kafka</artifactId>
         </dependency>
-
-
 
         <!-- Lombok -->
         <dependency>
@@ -176,12 +168,10 @@
             <scope>test</scope>
         </dependency>
 
-
         <dependency>
             <groupId>com.enterprise.platform</groupId>
-            <artifactId>user-service</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
-            <scope>compile</scope>
+            <artifactId>event-contracts</artifactId>
+            <version>${project.version}</version>
         </dependency>
 
     </dependencies>
@@ -199,7 +189,7 @@
 
                 <configuration>
                     <mainClass>
-                        com.enterprise.platform.auth.AuthServiceApplication
+                        com.enterprise.platform.user.UserServiceApplication
                     </mainClass>
                 </configuration>
 

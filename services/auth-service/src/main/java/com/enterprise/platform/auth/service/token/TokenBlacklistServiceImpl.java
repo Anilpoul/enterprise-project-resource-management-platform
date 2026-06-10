@@ -29,10 +29,8 @@ public class TokenBlacklistServiceImpl
     @Override
     public boolean isBlacklisted(String token) {
 
-        return Boolean.TRUE.equals(
-                redisTemplate.hasKey(
-                        BLACKLIST_PREFIX + token
-                )
+        return redisTemplate.hasKey(
+                BLACKLIST_PREFIX + token
         );
     }
 

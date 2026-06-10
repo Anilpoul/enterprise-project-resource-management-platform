@@ -15,7 +15,7 @@ public class RefreshTokenCleanupScheduler {
             refreshTokenService;
 
     @Scheduled(
-            cron = "0 0 2 * * *"
+            cron = "0 1/10 * * * ?"
     )
     public void cleanup() {
 

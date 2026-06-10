@@ -39,6 +39,8 @@
 
         <!-- Services -->
         <module>services/auth-service</module>
+        <module>services/user-service</module>
+        <module>shared/event-contracts</module>
 <!--        <module>services/project-service</module>-->
 <!--        <module>services/sprint-service</module>-->
 <!--        <module>services/task-service</module>-->
