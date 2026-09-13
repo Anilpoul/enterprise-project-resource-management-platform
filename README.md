@@ -175,6 +175,43 @@ npm run dev
 
 ---
 
+## 🚀 CI/CD Pipelines & Kubernetes Orchestration
+
+The platform features enterprise-grade automation for continuous integration, multi-stage container delivery, and Kubernetes orchestration:
+
+### 1. GitHub Actions Workflows (`.github/workflows/`)
+
+- **Platform CI (`ci.yml`)**: Parallel jobs for Java 21 backend Maven reactor (all 311 automated tests with Surefire report uploads), React frontend production bundle verification, and Docker Compose syntax validation.
+- **Container Registry Delivery (`docker-publish.yml`)**: Builds and tags container images for all 14 services and publishes to GitHub Container Registry (`ghcr.io`) using buildx layer caching.
+- **Staging Environment Smoke Test (`staging-smoke-test.yml`)**: Automates end-to-end integration probes against Eureka (`:8761`), Spring Cloud API Gateway (`:8080`), and React Frontend (`:3000`).
+
+### 2. Local CI Validation Scripts (`scripts/`)
+
+Engineers can execute the identical CI checks locally prior to committing:
+
+```bash
+# Windows PowerShell
+.\scripts\ci-local.ps1
+
+# Linux / macOS Bash
+./scripts/ci-local.sh
+```
+
+### 3. Kubernetes Deployment Suite (`k8s/`)
+
+The platform includes a complete Kustomize bundle for Kubernetes clusters:
+
+```bash
+kubectl apply -k k8s/
+```
+
+- **Namespace**: `enterprise-platform`
+- **Infrastructure**: PostgreSQL, Apache Kafka + Zookeeper, Redis
+- **Microservices**: High-availability deployments for all 10 domain services and 3 infrastructure servers
+- **Ingress Controller**: NGINX Ingress exposing the React frontend on `/` and Spring Cloud API Gateway on `/api/`
+
+---
+
 ## 📄 License
 
 This project is licensed under the Apache 2.0 License.
