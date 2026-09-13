@@ -146,8 +146,36 @@ cd docker/compose
 docker compose up -d
 ```
 
+### Run React Frontend Application
+
+The platform includes a modern React 18 frontend built with Vite, Vanilla CSS design tokens, dark mode, and an interactive Kanban board:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+- **Frontend URL**: `http://localhost:3000`
+- **Proxy Configuration**: Automatically proxies `/api/*` to Spring Cloud API Gateway on `http://localhost:8080`.
+- **Demo Mode**: Includes pre-seeded personas (Sarah Connor - Admin, Alex Chen - PM, Elena Rostova - Architect) and realistic offline fallback mock datasets for instant local evaluation without requiring every microservice to run simultaneously.
+
+---
+
+## 🎨 Frontend Architecture & Key Views
+
+- **Executive Dashboard**: High-level KPIs, organization capacity metrics, and live audit feed.
+- **Project Management**: Multi-status filtering, team rosters, and project creation modal.
+- **Interactive Kanban Board**: 4-column drag-and-drop workflow (To Do, In Progress, Review, Done) with story points and instant task creation.
+- **Sprint Management**: Velocity burndown, active sprints, and planned backlog iterations.
+- **Resource Allocation**: Workload distribution meters with over-allocation warnings (>100% capacity) and bench management.
+- **Analytics & Scorecards**: Project health indicators, velocity tracking, and employee performance matrices.
+- **Compliance Audit Forensics**: Searchable activity log with structured JSON diff modal inspector.
+- **Notifications Hub**: In-app alert drawer and channel preference toggles (Email / In-App).
+
 ---
 
 ## 📄 License
 
 This project is licensed under the Apache 2.0 License.
+
