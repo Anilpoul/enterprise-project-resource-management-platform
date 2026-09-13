@@ -50,7 +50,7 @@
         <module>services/resource-service</module>
         <module>services/analytics-service</module>
         <module>services/notification-service</module>
-<!--        <module>services/audit-service</module>-->
+        <module>services/audit-service</module>
 
 <!--        &lt;!&ndash; Shared Libraries &ndash;&gt;-->
 <!--        <module>shared/common-security</module>-->
