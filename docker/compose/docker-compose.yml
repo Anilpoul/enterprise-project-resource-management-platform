@@ -605,6 +605,28 @@ services:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
 
+  # =========================================
+  # REACT FRONTEND APPLICATION
+  # =========================================
+
+  frontend:
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+
+    container_name: enterprise-frontend
+
+    depends_on:
+      - api-gateway
+
+    ports:
+      - "${FRONTEND_PORT}:80"
+
+    restart: unless-stopped
+
+    networks:
+      - enterprise-network
+
 
 
 # =========================================
