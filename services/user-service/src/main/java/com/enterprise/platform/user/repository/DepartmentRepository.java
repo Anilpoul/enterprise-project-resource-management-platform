@@ -1,6 +1,8 @@
 package com.enterprise.platform.user.repository;
 
 import com.enterprise.platform.user.entity.Department;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -11,7 +13,12 @@ import java.util.UUID;
 public interface DepartmentRepository
         extends JpaRepository<Department, UUID> {
 
-    Optional<Department> findByName(String name);
+    boolean existsByNameIgnoreCase(
+            String name
+    );
 
-    boolean existsByName(String name);
+    Page<Department> findByNameContainingIgnoreCase(
+            String keyword,
+            Pageable pageable
+    );
 }

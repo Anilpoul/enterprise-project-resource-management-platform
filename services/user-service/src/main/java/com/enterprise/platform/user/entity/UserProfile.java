@@ -13,7 +13,7 @@ import java.util.UUID;
         indexes = {
                 @Index(
                         name = "idx_user_profile_user_id",
-                        columnList = "user_id"
+                        columnList = "auth_user_id"
                 ),
                 @Index(
                         name = "idx_user_profile_email",
@@ -22,6 +22,10 @@ import java.util.UUID;
                 @Index(
                         name = "idx_user_profile_manager_id",
                         columnList = "manager_id"
+                ),
+                @Index(
+                        name = "idx_user_profile_org_id",
+                        columnList = "organization_id"
                 )
         }
 )
@@ -68,4 +72,7 @@ public class UserProfile extends BaseEntity {
     private Designation designation;
 
     private UUID managerId;
+
+    @Column(name = "organization_id")
+    private UUID organizationId;
 }

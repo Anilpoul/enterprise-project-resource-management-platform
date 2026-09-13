@@ -23,9 +23,13 @@ public class AuthEventProducer {
                 authEvent.getEventType()
         );
 
+        String messageKey = authEvent.getUserId() != null
+                ? authEvent.getUserId().toString()
+                : (authEvent.getEmail() != null ? authEvent.getEmail() : java.util.UUID.randomUUID().toString());
+
         kafkaTemplate.send(
                 AUTH_TOPIC,
-                authEvent.getUserId().toString(),
+                messageKey,
                 authEvent
         ).whenComplete((result, ex) -> {
 

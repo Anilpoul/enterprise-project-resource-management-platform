@@ -9,6 +9,7 @@ import com.enterprise.platform.auth.entity.RefreshToken;
 import com.enterprise.platform.auth.entity.Role;
 import com.enterprise.platform.auth.entity.User;
 import com.enterprise.platform.auth.exception.BadRequestException;
+import com.enterprise.platform.auth.security.jwt.JwtClaimsFactory;
 import com.enterprise.platform.events.AuthEvent;
 import com.enterprise.platform.events.AuthEventType;
 import com.enterprise.platform.auth.kafka.producer.AuthEventProducer;
@@ -52,6 +53,7 @@ public class AuthenticationServiceImpl
     private final TokenBlacklistService tokenBlacklistService;
 
     private final AuthEventProducer authEventProducer;
+    private final JwtClaimsFactory jwtClaimsFactory;
 
     @Override
     public AuthResponse register(RegisterRequest request) {
@@ -89,10 +91,11 @@ public class AuthenticationServiceImpl
         user.setRoles(Set.of(defaultRole));
 
         User savedUser = userRepository.save(user);
-
-        String jwtToken = jwtService.generateToken(
-                new CustomUserDetails(savedUser)
-        );
+        String accessToken =
+                jwtService.generateToken(
+                        jwtClaimsFactory.buildClaims(savedUser),
+                        new CustomUserDetails(savedUser)
+                );
 
         RefreshToken refreshToken =
                 refreshTokenService.createRefreshToken(savedUser);
@@ -109,7 +112,7 @@ public class AuthenticationServiceImpl
                 .build());
 
         return AuthResponse.builder()
-                .accessToken(jwtToken)
+                .accessToken(accessToken)
                 .refreshToken(refreshToken.getToken())
                 .tokenType("Bearer")
                 .expiresIn(86400L)
@@ -144,7 +147,7 @@ public class AuthenticationServiceImpl
             );
         }
 
-        User user = userRepository.findByEmail(
+        User savedUser = userRepository.findByEmail(
                         request.getEmail()
                 )
                 .orElseThrow(() ->
@@ -153,26 +156,31 @@ public class AuthenticationServiceImpl
                         )
                 );
 
-        String jwtToken = jwtService.generateToken(
-                new CustomUserDetails(user)
-        );
+        String accessToken =
+                jwtService.generateToken(
+                        jwtClaimsFactory.buildClaims(savedUser),
+                        new CustomUserDetails(savedUser)
+                );
 
 
         RefreshToken refreshToken =
-                refreshTokenService.createRefreshToken(user);
+                refreshTokenService.createRefreshToken(savedUser);
 
         publishAuthEvent(AuthEvent.builder()
                 .eventId(UUID.randomUUID())
                 .eventType(
                         AuthEventType.USER_LOGGED_IN
                 )
-                .email(user.getEmail())
+                .userId(savedUser.getId())
+                .firstName(savedUser.getFirstName())
+                .lastName(savedUser.getLastName())
+                .email(savedUser.getEmail())
                 .timestamp(LocalDateTime.now())
                 .details("User logged in")
                 .build());
 
         return AuthResponse.builder()
-                .accessToken(jwtToken)
+                .accessToken(accessToken)
                 .refreshToken(refreshToken.getToken())
                 .tokenType("Bearer")
                 .expiresIn(86400L)
@@ -199,6 +207,7 @@ public class AuthenticationServiceImpl
 
         String accessToken =
                 jwtService.generateToken(
+                        jwtClaimsFactory.buildClaims(user),
                         new CustomUserDetails(user)
                 );
 
@@ -217,12 +226,27 @@ public class AuthenticationServiceImpl
             String refreshToken,
             String accessToken
     ) {
+        String userEmail = "USER";
+        UUID userId = null;
+        try {
+            if (accessToken != null && !accessToken.isBlank()) {
+                userEmail = jwtService.extractUsername(accessToken);
+                var userOpt = userRepository.findByEmail(userEmail);
+                if (userOpt.isPresent()) {
+                    userId = userOpt.get().getId();
+                }
+            }
+        } catch (Exception ex) {
+            log.warn("Could not extract user details during logout: {}", ex.getMessage());
+        }
+
         publishAuthEvent(AuthEvent.builder()
                 .eventId(UUID.randomUUID())
                 .eventType(
                         AuthEventType.USER_LOGGED_OUT
                 )
-                .email("USER")
+                .userId(userId)
+                .email(userEmail)
                 .timestamp(LocalDateTime.now())
                 .details("User logged out")
                 .build());

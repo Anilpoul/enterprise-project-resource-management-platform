@@ -87,9 +87,16 @@ services:
 
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
 
     ports:
       - "2181:2181"
+
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
     networks:
       - enterprise-network
@@ -104,25 +111,35 @@ services:
     container_name: enterprise-kafka
 
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
 
     ports:
       - "${KAFKA_PORT}:9092"
+      - "29092:29092"
 
     environment:
       KAFKA_BROKER_ID: 1
 
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
 
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
 
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
 
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
 
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
 
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9092 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
     networks:
       - enterprise-network
@@ -147,7 +164,7 @@ services:
       - enterprise-network
 
     environment:
-      JAVA_OPTS: "-Xms256m -Xmx512m"
+      JAVA_OPTS: "-Xms128m -Xmx256m"
 
   # =========================================
   # DISCOVERY SERVER
@@ -172,7 +189,7 @@ services:
       - enterprise-network
 
     environment:
-      JAVA_OPTS: "-Xms256m -Xmx512m"
+      JAVA_OPTS: "-Xms128m -Xmx256m"
 
   # =========================================
   # API GATEWAY
@@ -197,6 +214,13 @@ services:
     networks:
       - enterprise-network
 
+    environment:
+      JAVA_OPTS: "-Xms128m -Xmx256m"
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+
   # =========================================
   # AUTH SERVICE
   # =========================================
@@ -216,7 +240,7 @@ services:
       discovery-server:
         condition: service_started
       kafka:
-        condition: service_started
+        condition: service_healthy
       redis:
         condition: service_started
 
@@ -229,7 +253,15 @@ services:
       - enterprise-network
 
     environment:
-      JAVA_OPTS: "-Xms256m -Xmx512m"
+      JAVA_OPTS: "-Xms128m -Xmx256m"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
 
   # =========================================
   # USER SERVICE
@@ -250,7 +282,7 @@ services:
       discovery-server:
         condition: service_started
       kafka:
-        condition: service_started
+        condition: service_healthy
 
     ports:
       - "${USER_SERVICE_PORT}:8082"
@@ -261,7 +293,243 @@ services:
       - enterprise-network
 
     environment:
-      JAVA_OPTS: "-Xms256m -Xmx512m"
+      JAVA_OPTS: "-Xms128m -Xmx256m"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://user-postgres:5432/${USER_DB}
+      SPRING_DATASOURCE_USERNAME: ${USER_DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${USER_DB_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+
+  # =========================================
+  # ORGANIZATION SERVICE
+  # =========================================
+
+  organization-service:
+    build:
+      context: ../../
+      dockerfile: services/organization-service/Dockerfile
+
+    container_name: organization-service
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      config-server:
+        condition: service_started
+      discovery-server:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+
+    ports:
+      - "${ORGANIZATION_SERVICE_PORT}:8083"
+
+    restart: unless-stopped
+
+    networks:
+      - enterprise-network
+
+    environment:
+      JAVA_OPTS: "-Xms128m -Xmx256m"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/organization_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+
+  # =========================================
+  # PROJECT SERVICE
+  # =========================================
+
+  project-service:
+    build:
+      context: ../../
+      dockerfile: services/project-service/Dockerfile
+
+    container_name: project-service
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      config-server:
+        condition: service_started
+      discovery-server:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+
+    ports:
+      - "${PROJECT_SERVICE_PORT}:8084"
+
+    restart: unless-stopped
+
+    networks:
+      - enterprise-network
+
+    environment:
+      JAVA_OPTS: "-Xms128m -Xmx256m"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/project_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+
+  # =========================================
+  # TASK SERVICE
+  # =========================================
+
+  task-service:
+    build:
+      context: ../../
+      dockerfile: services/task-service/Dockerfile
+
+    container_name: task-service
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      config-server:
+        condition: service_started
+      discovery-server:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+
+    ports:
+      - "${TASK_SERVICE_PORT}:8085"
+
+    restart: unless-stopped
+
+    networks:
+      - enterprise-network
+
+    environment:
+      JAVA_OPTS: "-Xms128m -Xmx256m"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/task_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+
+  # =========================================
+  # SPRINT SERVICE
+  # =========================================
+
+  sprint-service:
+    build:
+      context: ../../
+      dockerfile: services/sprint-service/Dockerfile
+
+    container_name: sprint-service
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      config-server:
+        condition: service_started
+      discovery-server:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+
+    ports:
+      - "${SPRINT_SERVICE_PORT}:8086"
+
+    restart: unless-stopped
+
+    networks:
+      - enterprise-network
+
+    environment:
+      JAVA_OPTS: "-Xms128m -Xmx256m"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/sprint_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+
+  # =========================================
+  # RESOURCE SERVICE
+  # =========================================
+
+  resource-service:
+    build:
+      context: ../../
+      dockerfile: services/resource-service/Dockerfile
+
+    container_name: resource-service
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      config-server:
+        condition: service_started
+      discovery-server:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+
+    ports:
+      - "${RESOURCE_SERVICE_PORT}:8087"
+
+    restart: unless-stopped
+
+    networks:
+      - enterprise-network
+
+    environment:
+      JAVA_OPTS: "-Xms128m -Xmx256m"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/resource_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+
+  # =========================================
+  # ANALYTICS SERVICE
+  # =========================================
+
+  analytics-service:
+    build:
+      context: ../../
+      dockerfile: services/analytics-service/Dockerfile
+
+    container_name: analytics-service
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      config-server:
+        condition: service_started
+      discovery-server:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+
+    ports:
+      - "${ANALYTICS_SERVICE_PORT}:8088"
+
+    restart: unless-stopped
+
+    networks:
+      - enterprise-network
+
+    environment:
+      JAVA_OPTS: "-Xms128m -Xmx256m"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/analytics_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+
+
 
 # =========================================
 # VOLUMES

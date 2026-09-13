@@ -1,0 +1,14 @@
+package com.enterprise.platform.events;
+
+public enum ProjectEventType {
+
+    PROJECT_CREATED,
+    PROJECT_UPDATED,
+    PROJECT_STATUS_CHANGED,
+    PROJECT_ARCHIVED,
+    PROJECT_DELETED,
+    PROJECT_MEMBER_ADDED,
+    PROJECT_MEMBER_REMOVED,
+    PROJECT_MEMBER_ROLE_UPDATED
+
+}

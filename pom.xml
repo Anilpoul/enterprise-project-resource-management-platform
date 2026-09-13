@@ -37,15 +37,18 @@
         <module>infrastructure/discovery-server</module>
         <module>infrastructure/api-gateway</module>
 
+        <!-- Shared -->
+        <module>shared/event-contracts</module>
+
         <!-- Services -->
         <module>services/auth-service</module>
         <module>services/user-service</module>
-        <module>shared/event-contracts</module>
-<!--        <module>services/project-service</module>-->
-<!--        <module>services/sprint-service</module>-->
-<!--        <module>services/task-service</module>-->
-<!--        <module>services/resource-service</module>-->
-<!--        <module>services/analytics-service</module>-->
+        <module>services/organization-service</module>
+        <module>services/project-service</module>
+        <module>services/task-service</module>
+        <module>services/sprint-service</module>
+        <module>services/resource-service</module>
+        <module>services/analytics-service</module>
 <!--        <module>services/notification-service</module>-->
 <!--        <module>services/audit-service</module>-->
 
