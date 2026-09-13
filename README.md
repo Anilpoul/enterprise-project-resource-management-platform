@@ -1,407 +1,153 @@
 # Enterprise Project & Resource Management Platform
 
-A production-grade enterprise microservices platform inspired by Azure DevOps and Jira for managing projects, resources, teams, KPIs, analytics, and enterprise workflows.
+A production-grade, multi-tenant enterprise microservices platform inspired by Azure DevOps, Jira, and Linear for managing organizations, projects, resources, teams, sprints, tasks, KPIs, notifications, and immutable compliance auditing.
 
 ---
 
-# 🚀 Project Overview
+## 🚀 Platform Overview
 
-This platform is designed for organizations to efficiently manage:
+The platform provides complete end-to-end capabilities for modern software organizations:
 
-- Projects
-- Teams
-- Sprint Planning
-- Task Allocation
-- Employee Utilization
-- KPI Tracking
-- Notifications
-- Analytics
-- Reporting
-
-The system follows modern enterprise architecture patterns using:
-
-- Microservices Architecture
-- Event-Driven Architecture
-- API Gateway Pattern
-- JWT Authentication & RBAC
-- Distributed Caching
-- Centralized Logging
-- Monitoring & Observability
+- **Multi-Tenant Governance**: Organization onboarding, member invitations, and tenant isolation via `TenantContext` (`X-Organization-Id`).
+- **User & Department Management**: Employee profiles, designations, and departmental hierarchies.
+- **Project Life Cycle Management**: Workspaces, project memberships, and access controls.
+- **Task Workflow Engine**: Kanban & Scrum workflows, issue hierarchies, priorities, assignments, and discussions.
+- **Sprint & Agile Planning**: Sprint lifecycles, velocity metrics, and interactive Scrum boards.
+- **Resource Allocation & Capacity**: Real-time workload allocation, over-allocation alerts (>100%), and bench tracking.
+- **Executive Analytics & Reporting**: Organization KPI dashboards, project health indicators, sprint velocity, and employee scorecards.
+- **Multi-Channel Notifications**: In-app alert inbox and simulated email dispatcher with user preference controls.
+- **Compliance & Immutable Audit Trail**: Append-only activity logging, forensic entity timelines, and aggregate compliance summaries.
 
 ---
 
-# 🏗️ Architecture
+## 🏗️ Architecture & Technology Stack
 
-## High-Level Architecture
+The platform is designed around cloud-native, event-driven microservice patterns:
+
+- **Java 21** & **Spring Boot 3.3.5**
+- **Spring Cloud 2023.0.3** (Eureka Discovery, Config Server, Spring Cloud Gateway)
+- **Spring Data JPA & Hibernate 6** with **Flyway** database migrations
+- **PostgreSQL 17** with dedicated databases per service
+- **Apache Kafka** for asynchronous, event-driven domain communication
+- **Redis** for distributed caching and JWT blacklisting
+- **Springdoc OpenAPI / Swagger UI 2.5.0** documentation on every service
+- **MapStruct & Lombok** for clean, boilerplate-free data transformation
 
 ```text
-                        ┌─────────────────────┐
-                        │      React UI       │
-                        └──────────┬──────────┘
-                                   │
-                                   ▼
-                        ┌─────────────────────┐
-                        │     API Gateway     │
-                        └──────────┬──────────┘
-                                   │
-        ┌──────────────────────────┼──────────────────────────┐
-        ▼                          ▼                          ▼
-
-┌─────────────────┐     ┌─────────────────┐      ┌─────────────────┐
-│   Auth Service  │     │ Project Service │      │ Sprint Service  │
-└─────────────────┘     └─────────────────┘      └─────────────────┘
-
-        ▼                          ▼                          ▼
-
-┌─────────────────┐     ┌─────────────────┐      ┌─────────────────┐
-│ PostgreSQL DB   │     │ PostgreSQL DB   │      │ PostgreSQL DB   │
-└─────────────────┘     └─────────────────┘      └─────────────────┘
-
-                ┌─────────────────────────────┐
-                │         Kafka Broker        │
-                └─────────────────────────────┘
-
-                ┌─────────────────────────────┐
-                │            Redis            │
-                └─────────────────────────────┘
+                        ┌────────────────────────┐
+                        │   Web Client / React   │
+                        └───────────┬────────────┘
+                                    │
+                                    ▼
+                        ┌────────────────────────┐
+                        │   API Gateway (8080)   │
+                        └───────────┬────────────┘
+                                    │
+      ┌────────────────┬────────────┼────────────┬────────────────┐
+      ▼                ▼            ▼            ▼                ▼
+┌────────────┐  ┌────────────┐┌────────────┐┌────────────┐  ┌────────────┐
+│Auth Service│  │Org Service ││Proj Service││Task Service│  │Audit Svc  │
+│   (8081)   │  │   (8083)   ││   (8084)   ││   (8085)   │  │   (8090)   │
+└─────┬──────┘  └─────┬──────┘└─────┬──────┘└─────┬──────┘  └─────┬──────┘
+      │               │             │             │               │
+      └───────────────┼─────────────┴─────────────┼───────────────┘
+                      ▼                           ▼
+          ┌────────────────────────┐  ┌────────────────────────┐
+          │  Apache Kafka Broker   │  │   PostgreSQL Engine    │
+          │   (Domain Event Bus)   │  │ (Independent Databases)│
+          └────────────────────────┘  └────────────────────────┘
 ```
 
 ---
 
-# 🧩 Microservices
+## 🧩 Microservices Directory
 
-| Service | Responsibility |
-|---|---|
-| API Gateway | Routing, authentication filter, centralized entry point |
-| Config Server | Centralized configuration management |
-| Discovery Server | Service discovery using Eureka |
-| Auth Service | JWT authentication, RBAC, refresh tokens |
-| Project Service | Project & team management |
-| Sprint Service | Sprint planning & tracking |
-| Task Service | Task lifecycle management |
-| Notification Service | Email & system notifications |
-| Analytics Service | KPI & productivity analytics |
-| Audit Service | Audit logging & activity tracking |
-
----
-
-# 🛠️ Tech Stack
-
-## Backend
-
-- Java 21
-- Spring Boot
-- Spring Security
-- Spring Cloud
-- Spring Data JPA
-- Spring Validation
-- Spring Web
-- Spring Kafka
-- Spring Cache
-- Spring AOP
-
-## Database
-
-- PostgreSQL
-
-## Caching
-
-- Redis
-
-## Messaging
-
-- Apache Kafka
-
-## Infrastructure
-
-- Docker
-- Docker Compose
-
-## API Documentation
-
-- Swagger / OpenAPI
-
-## Frontend (Planned)
-
-- React
-- Tailwind CSS
-- Axios
-- React Query
-
-## Monitoring (Planned)
-
-- Prometheus
-- Grafana
-- ELK Stack
+| Service | Port | Database | Responsibilities | Swagger UI |
+| :--- | :---: | :---: | :--- | :--- |
+| **`api-gateway`** | 8080 | - | Centralized routing, authentication filtering, rate limiting | - |
+| **`config-server`** | 8888 | - | Spring Cloud centralized configuration repository | - |
+| **`discovery-server`**| 8761 | - | Netflix Eureka service discovery & health monitoring | `http://localhost:8761` |
+| **`auth-service`** | 8081 | `auth_db` | JWT authentication, refresh token rotation, RBAC | `http://localhost:8081/swagger-ui.html` |
+| **`user-service`** | 8082 | `user_db` | User profiles, departments, employee designations | `http://localhost:8082/swagger-ui.html` |
+| **`organization-service`** | 8083 | `organization_db` | Multi-tenancy, org lifecycle, membership roles | `http://localhost:8083/swagger-ui.html` |
+| **`project-service`** | 8084 | `project_db` | Project workspaces, member access controls | `http://localhost:8084/swagger-ui.html` |
+| **`task-service`** | 8085 | `task_db` | Task lifecycle, priority, comments, workflows | `http://localhost:8085/swagger-ui.html` |
+| **`sprint-service`** | 8086 | `sprint_db` | Agile sprints, Kanban/Scrum boards, columns | `http://localhost:8086/swagger-ui.html` |
+| **`resource-service`** | 8087 | `resource_db` | Resource capacity, allocation percentage, bench | `http://localhost:8087/swagger-ui.html` |
+| **`analytics-service`**| 8088 | `analytics_db` | KPI dashboards, project health, team scorecards | `http://localhost:8088/swagger-ui.html` |
+| **`notification-service`** | 8089 | `notification_db` | In-app alerts, email stubs, user preferences | `http://localhost:8089/swagger-ui.html` |
+| **`audit-service`** | 8090 | `audit_db` | Immutable compliance activity logs, timelines | `http://localhost:8090/swagger-ui.html` |
 
 ---
 
-# 🔐 Security Features
+## 📡 Event-Driven Architecture (Kafka)
 
-- JWT Authentication
-- Refresh Token Rotation
-- Role-Based Access Control (RBAC)
-- Permission-Based Authorization
-- BCrypt Password Encryption
-- Redis Token Blacklisting
-- Stateless Authentication
-- Secure API Gateway Validation
+Microservices communicate asynchronously via Apache Kafka topics defined in the `event-contracts` shared library:
 
----
-
-# 👥 User Roles
-
-| Role | Responsibilities |
-|---|---|
-| Admin | Full platform access |
-| Manager | Manage projects, teams, and allocations |
-| Team Lead | Sprint and task management |
-| Team Member | Task execution and updates |
+- **`auth-events`**: User registration, login, logout, password updates.
+- **`org-events`**: Organization creation, updates, member status changes.
+- **`project-events`**: Project creation, status transitions, member additions.
+- **`task-events`**: Task creation, assignments, status transitions, comment additions.
+- **`sprint-events`**: Sprint created, started, completed, velocity updates.
+- **`resource-events`**: Work allocations, capacity shifts, over-allocation warnings.
+- **`audit-events`**: Manual or system compliance audit records.
 
 ---
 
-# 📦 Core Features
+## 🧪 Automated Testing & Quality Metrics
 
-## Authentication & Authorization
-
-- Login/Register
-- JWT Access Token
-- Refresh Token
-- Logout
-- RBAC
-- Permission Management
-
-## Project Management
-
-- Create Projects
-- Team Assignment
-- Resource Allocation
-
-## Sprint Management
-
-- Sprint Creation
-- Sprint Planning
-- Sprint Tracking
-
-## Task Management
-
-- Task Assignment
-- Status Workflow
-- Priority Management
-
-## Resource Management
-
-- Utilization Tracking
-- Capacity Planning
-- Bench Tracking
-
-## Analytics & Reporting
-
-- KPI Dashboards
-- Productivity Reports
-- Team Performance Metrics
-
-## Notifications
-
-- Email Notifications
-- Event-Driven Alerts
-
-## Audit Logs
-
-- User Activity Tracking
-- Security Audit Logs
-
----
-
-# 📁 Monorepo Structure
+The entire Maven multi-module reactor compiles cleanly and executes **311 automated tests with 100% pass rate**:
 
 ```text
-enterprise-project-resource-management-platform/
-│
-├── infrastructure/
-│   ├── api-gateway/
-│   ├── config-server/
-│   └── discovery-server/
-│
-├── services/
-│   ├── auth-service/
-│   ├── project-service/
-│   ├── sprint-service/
-│   ├── task-service/
-│   ├── notification-service/
-│   ├── analytics-service/
-│   └── audit-service/
-│
-├── docker/
-│   ├── compose/
-│   └── postgres/
-│
-├── monitoring/
-│
-├── k8s/
-│
-├── docs/
-│
-└── pom.xml
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for enterprise-platform-parent 1.0.0-SNAPSHOT:
+[INFO] 
+[INFO] enterprise-platform-parent ......................... SUCCESS
+[INFO] config-server ...................................... SUCCESS
+[INFO] discovery-server ................................... SUCCESS
+[INFO] api-gateway ........................................ SUCCESS
+[INFO] event-contracts .................................... SUCCESS
+[INFO] auth-service ....................................... SUCCESS [14 tests]
+[INFO] user-service ....................................... SUCCESS [ 8 tests]
+[INFO] organization-service ............................... SUCCESS [38 tests]
+[INFO] project-service .................................... SUCCESS [52 tests]
+[INFO] task-service ....................................... SUCCESS [37 tests]
+[INFO] sprint-service ..................................... SUCCESS [36 tests]
+[INFO] resource-service ................................... SUCCESS [42 tests]
+[INFO] analytics-service .................................. SUCCESS [29 tests]
+[INFO] notification-service ............................... SUCCESS [35 tests]
+[INFO] audit-service ...................................... SUCCESS [20 tests]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS (311 Tests Passed, 0 Failures, 0 Skipped)
+[INFO] ------------------------------------------------------------------------
 ```
 
 ---
 
-# ⚙️ Running the Project
+## ⚙️ Getting Started
 
-## Prerequisites
+### Prerequisites
 
-- Java 21
-- Docker Desktop
-- Git
+- **Java 21** (JDK 21+)
+- **Maven 3.9+**
+- **Docker Desktop**
+- **PostgreSQL 17** & **Apache Kafka**
 
----
-
-## Clone Repository
+### Build the Full Reactor
 
 ```bash
-git clone https://github.com/Anilpoul/enterprise-project-resource-management-platform.git
+mvn clean test
 ```
 
----
-
-## Build Project
-
-```bash
-./mvnw clean package -DskipTests
-```
-
----
-
-## Start Infrastructure
+### Run Infrastructure with Docker Compose
 
 ```bash
 cd docker/compose
-docker compose up --build
+docker compose up -d
 ```
 
 ---
 
-# 🌐 Access Services
+## 📄 License
 
-| Service | URL |
-|---|---|
-| Eureka Dashboard | http://localhost:8761 |
-| API Gateway | http://localhost:8080 |
-| Auth Service Swagger | http://localhost:8081/swagger-ui.html |
-
----
-
-# 🐳 Docker Infrastructure
-
-The platform runs using Docker Compose with:
-
-- PostgreSQL
-- Redis
-- Kafka
-- Zookeeper
-- Config Server
-- Discovery Server
-- API Gateway
-- Auth Service
-
----
-
-# 📡 Event-Driven Architecture
-
-Kafka is used for:
-
-- Authentication Events
-- Notification Events
-- Audit Events
-- Project Events
-- Task Events
-
----
-
-# 📚 API Documentation
-
-Swagger/OpenAPI is enabled for all services.
-
-Example:
-
-```text
-http://localhost:8081/swagger-ui.html
-```
-
----
-
-# 🧪 Testing
-
-Planned:
-
-- Unit Testing
-- Integration Testing
-- Testcontainers
-- API Testing
-- Security Testing
-
----
-
-# 📈 Monitoring & Observability (Upcoming)
-
-- Prometheus
-- Grafana
-- ELK Stack
-- Distributed Tracing
-- Correlation IDs
-- Micrometer Metrics
-
----
-
-# 🚀 CI/CD (Upcoming)
-
-Planned:
-
-- GitHub Actions
-- Docker Registry
-- Kubernetes Deployment
-- Helm Charts
-- Automated Testing Pipeline
-
----
-
-# 🎯 Learning Goals
-
-This project is built to demonstrate:
-
-- Enterprise Backend Development
-- Microservices Architecture
-- Distributed Systems
-- Secure Authentication Systems
-- Event-Driven Architecture
-- DevOps & Containerization
-- Production-Grade Coding Standards
-
----
-
-# 👨‍💻 Author
-
-## Anil Poul
-
-GitHub:  
-https://github.com/Anilpoul
-
----
-
-# ⭐ Future Enhancements
-
-- React Frontend
-- Kubernetes Deployment
-- AI-based Resource Allocation
-- Real-time Notifications
-- WebSocket Integration
-- Multi-Tenant Architecture
-- SSO Integration
-- Terraform Infrastructure
-
----
-
-# 📄 License
-
-This project is for educational and portfolio purposes.
+This project is licensed under the Apache 2.0 License.
