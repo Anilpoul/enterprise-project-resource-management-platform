@@ -1,5 +1,9 @@
 FROM eclipse-temurin:21-jre-alpine
-VOLUME /tmp
-ARG JAR_FILE=target/*.jar
-COPY ${JAR_FILE} app.jar
-ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/app.jar"]
+
+WORKDIR /app
+
+COPY services/analytics-service/target/analytics-service-*.jar app.jar
+
+EXPOSE 8088
+
+ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "app.jar"]

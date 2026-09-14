@@ -1,5 +1,9 @@
 FROM eclipse-temurin:21-jre-alpine
-VOLUME /tmp
-ARG JAR_FILE=target/sprint-service-1.0.0-SNAPSHOT.jar
-COPY ${JAR_FILE} app.jar
-ENTRYPOINT ["java","-Djava.security.egd=file:/dev/./urandom","-jar","/app.jar"]
+
+WORKDIR /app
+
+COPY services/sprint-service/target/sprint-service-*.jar app.jar
+
+EXPOSE 8086
+
+ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "app.jar"]
