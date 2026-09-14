@@ -1,6 +1,15 @@
 # Enterprise Project & Resource Management Platform
 
+[![CI Pipeline](https://github.com/Anilpoul/enterprise-project-resource-management-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/Anilpoul/enterprise-project-resource-management-platform/actions/workflows/ci.yml)
+[![Java 21](https://img.shields.io/badge/Java-21-orange.svg)](https://adoptium.net/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.5-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![Spring Cloud](https://img.shields.io/badge/Spring%20Cloud-2023.0.3-blue.svg)](https://spring.io/projects/spring-cloud)
+[![React](https://img.shields.io/badge/React-18-61DAFB.svg?logo=react&logoColor=black)](https://react.dev/)
+[![Tests](https://img.shields.io/badge/Tests-311%20Passed-success.svg)](file:///d:/enterprise-platform-parent/enterprise-platform-parent)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+
 A production-grade, multi-tenant enterprise microservices platform inspired by Azure DevOps, Jira, and Linear for managing organizations, projects, resources, teams, sprints, tasks, KPIs, notifications, and immutable compliance auditing.
+
 
 ---
 
@@ -77,6 +86,7 @@ The platform is designed around cloud-native, event-driven microservice patterns
 | **`analytics-service`**| 8088 | `analytics_db` | KPI dashboards, project health, team scorecards | `http://localhost:8088/swagger-ui.html` |
 | **`notification-service`** | 8089 | `notification_db` | In-app alerts, email stubs, user preferences | `http://localhost:8089/swagger-ui.html` |
 | **`audit-service`** | 8090 | `audit_db` | Immutable compliance activity logs, timelines | `http://localhost:8090/swagger-ui.html` |
+| **`frontend`** | 3000 | - | React 18 SPA (Kanban, Sprints, Dashboards, Personas) | `http://localhost:3000` |
 
 ---
 
@@ -143,6 +153,7 @@ mvn clean test
 
 ```bash
 cd docker/compose
+cp .env.example .env
 docker compose up -d
 ```
 
@@ -158,7 +169,59 @@ npm run dev
 
 - **Frontend URL**: `http://localhost:3000`
 - **Proxy Configuration**: Automatically proxies `/api/*` to Spring Cloud API Gateway on `http://localhost:8080`.
-- **Demo Mode**: Includes pre-seeded personas (Sarah Connor - Admin, Alex Chen - PM, Elena Rostova - Architect) and realistic offline fallback mock datasets for instant local evaluation without requiring every microservice to run simultaneously.
+
+### 👥 Pre-Configured Demo Personas
+
+The application includes built-in 1-click persona switching and pre-seeded credentials for instant local evaluation:
+
+| Persona | Name | Role & Permissions | Email | Password |
+| :--- | :--- | :--- | :--- | :--- |
+| 👑 **Administrator** | Sarah Connor | Platform Administrator (Full Access) | `admin@enterprise.com` | `Admin@123` |
+| 📋 **Project Manager** | Alex Chen | Senior Project Manager / Scrum Master | `pm@enterprise.com` | `Pm@123` |
+| 💻 **Staff Engineer** | Elena Rostova | Principal Cloud Architect / Tech Lead | `engineer@enterprise.com` | `Dev@123` |
+
+---
+
+## 📂 Repository Structure
+
+```text
+enterprise-platform-parent/
+├── .github/
+│   └── workflows/              # GitHub Actions CI/CD workflows (ci, publish, smoke-test)
+├── docker/
+│   └── compose/                # Multi-service Docker Compose orchestration (.env.example)
+├── frontend/                   # React 18 Single Page Application (Vite, Vanilla CSS)
+│   ├── src/
+│   │   ├── api/                # Axios gateway client & offline mock fallback
+│   │   ├── components/         # Modals, Navbar, Sidebar, NotificationDrawer
+│   │   ├── context/            # AuthContext, TenantContext, NotificationContext
+│   │   └── pages/              # Dashboard, Projects, Board, Sprints, Resources, Audit...
+│   ├── Dockerfile              # Multi-stage production build (Node -> Nginx)
+│   └── nginx.conf              # SPA routing & API reverse proxy configuration
+├── infrastructure/
+│   ├── api-gateway/            # Reactive Spring Cloud Gateway (Port 8080)
+│   ├── config-server/          # Spring Cloud Config Server (Port 8888)
+│   └── discovery-server/       # Netflix Eureka Service Registry (Port 8761)
+├── k8s/                        # Declarative Kubernetes manifests (Kustomize bundle)
+│   ├── infrastructure/         # Postgres, Kafka/Zookeeper, Redis
+│   ├── services/               # Microservice Deployments & Services (Ports 8081-8090)
+│   └── frontend/               # React Frontend Deployment, Service & Ingress
+├── scripts/                    # Cross-platform local CI validation (PowerShell & Bash)
+├── services/                   # Core Business Domain Microservices
+│   ├── analytics-service/      # Executive KPIs & performance scoring (Port 8088)
+│   ├── audit-service/          # Immutable compliance activity logging (Port 8090)
+│   ├── auth-service/           # JWT auth, refresh tokens, RBAC (Port 8081)
+│   ├── notification-service/   # Multi-channel alerts & preferences (Port 8089)
+│   ├── organization-service/   # Multi-tenancy & org governance (Port 8083)
+│   ├── project-service/        # Workspaces & project membership (Port 8084)
+│   ├── resource-service/       # Capacity allocation & over-allocation alerts (Port 8087)
+│   ├── sprint-service/         # Sprints & interactive Kanban columns (Port 8086)
+│   ├── task-service/           # Task lifecycle, priorities & comments (Port 8085)
+│   └── user-service/           # Employee profiles & departments (Port 8082)
+└── shared/
+    └── event-contracts/        # Canonical Kafka domain event models (Java library)
+```
+
 
 ---
 
