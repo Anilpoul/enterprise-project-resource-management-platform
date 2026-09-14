@@ -7,10 +7,10 @@ const AuthContext = createContext();
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('user_profile');
-    return saved ? JSON.parse(saved) : DEMO_USERS[0];
+    return saved ? JSON.parse(saved) : null;
   });
 
-  const [token, setToken] = useState(() => localStorage.getItem('access_token') || 'demo-jwt-token-xyz');
+  const [token, setToken] = useState(() => localStorage.getItem('access_token') || null);
 
   useEffect(() => {
     if (user) {
@@ -30,21 +30,40 @@ export function AuthProvider({ children }) {
     }
   }, [token]);
 
+  const register = async (userData) => {
+    const res = await api.register(userData);
+    if (res.success && res.data) {
+      const d = res.data;
+      const profile = {
+        id: d.userId,
+        email: d.email || userData.email,
+        firstName: d.firstName || userData.firstName,
+        lastName: d.lastName || userData.lastName,
+        role: d.roles?.[0] || 'ROLE_USER'
+      };
+      setToken(d.accessToken);
+      setUser(profile);
+      return { success: true, profile };
+    }
+    return { success: false, error: res.error || 'Registration failed' };
+  };
+
   const login = async (credentials) => {
     const res = await api.login(credentials);
-    if (res.data) {
-      setToken(res.data.accessToken || 'demo-token');
+    if (res.success && res.data) {
+      const d = res.data;
       const profile = {
-        id: res.data.userId || 'u1-admin',
-        email: res.data.email || credentials.email,
-        firstName: res.data.firstName || 'Sarah',
-        lastName: res.data.lastName || 'Connor',
-        role: res.data.roles?.[0] || 'ROLE_ADMIN'
+        id: d.userId,
+        email: d.email || credentials.email,
+        firstName: d.firstName || 'User',
+        lastName: d.lastName || '',
+        role: d.roles?.[0] || 'ROLE_USER'
       };
+      setToken(d.accessToken);
       setUser(profile);
-      return profile;
+      return { success: true, profile };
     }
-    return null;
+    return { success: false, error: res.error || 'Authentication failed' };
   };
 
   const selectPersona = (personaIndex) => {
@@ -60,7 +79,15 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, isAuthenticated: !!user, login, logout, selectPersona }}>
+    <AuthContext.Provider value={{
+      user,
+      token,
+      isAuthenticated: !!user && !!token,
+      register,
+      login,
+      logout,
+      selectPersona
+    }}>
       {children}
     </AuthContext.Provider>
   );

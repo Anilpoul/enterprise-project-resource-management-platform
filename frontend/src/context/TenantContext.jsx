@@ -5,22 +5,27 @@ import { DEMO_ORGS } from '../api/mockData';
 const TenantContext = createContext();
 
 export function TenantProvider({ children }) {
-  const [organizations, setOrganizations] = useState(DEMO_ORGS);
+  const [organizations, setOrganizations] = useState([]);
   const [activeOrg, setActiveOrg] = useState(() => {
     const saved = localStorage.getItem('active_org');
-    return saved ? JSON.parse(saved) : DEMO_ORGS[0];
+    return saved ? JSON.parse(saved) : null;
   });
 
-  useEffect(() => {
-    const loadOrgs = async () => {
-      const orgs = await api.getOrganizations();
-      if (orgs && orgs.length > 0) {
-        setOrganizations(orgs);
-        if (!activeOrg || !orgs.some(o => o.id === activeOrg.id)) {
-          setActiveOrg(orgs[0]);
-        }
+  const loadOrgs = async () => {
+    const orgs = await api.getOrganizations();
+    if (Array.isArray(orgs) && orgs.length > 0) {
+      setOrganizations(orgs);
+      // If current activeOrg is not in the list, set to the first one
+      if (!activeOrg || !orgs.some(o => o.id === activeOrg.id)) {
+        setActiveOrg(orgs[0]);
       }
-    };
+    } else {
+      setOrganizations(DEMO_ORGS);
+      if (!activeOrg) setActiveOrg(DEMO_ORGS[0]);
+    }
+  };
+
+  useEffect(() => {
     loadOrgs();
   }, []);
 
@@ -41,8 +46,25 @@ export function TenantProvider({ children }) {
     }
   };
 
+  const createOrganization = async (orgData) => {
+    const res = await api.createOrganization(orgData);
+    if (res.success && res.data) {
+      const newOrg = res.data;
+      setOrganizations(prev => [newOrg, ...prev.filter(o => o.id !== newOrg.id)]);
+      setActiveOrg(newOrg);
+      return { success: true, data: newOrg };
+    }
+    return { success: false, error: res.error || 'Failed to create organization' };
+  };
+
   return (
-    <TenantContext.Provider value={{ organizations, activeOrg, switchOrg }}>
+    <TenantContext.Provider value={{
+      organizations,
+      activeOrg,
+      switchOrg,
+      createOrganization,
+      refreshOrganizations: loadOrgs
+    }}>
       {children}
     </TenantContext.Provider>
   );

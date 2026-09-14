@@ -1,43 +1,69 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
-import { Plus, Search, FolderKanban, Calendar, Users, ArrowUpRight } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { Plus, Search, FolderKanban, Calendar, Users, ArrowUpRight, AlertCircle, Zap, Kanban } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Modal from '../components/Modal';
 
 export default function ProjectsPage() {
+  const { user } = useAuth();
   const [projects, setProjects] = useState([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   // New Project Form State
   const [newProject, setNewProject] = useState({
     name: '',
     projectKey: '',
+    projectType: 'SOFTWARE',
     description: '',
-    status: 'ACTIVE',
-    priority: 'HIGH'
+    startDate: new Date().toISOString().split('T')[0],
+    targetEndDate: new Date(Date.now() + 90 * 86400000).toISOString().split('T')[0]
   });
 
+  const fetchProjects = async () => {
+    const data = await api.getProjects();
+    setProjects(data);
+  };
+
   useEffect(() => {
-    const fetchProjects = async () => {
-      const data = await api.getProjects();
-      setProjects(data);
-    };
     fetchProjects();
   }, []);
 
   const handleCreateProject = async (e) => {
     e.preventDefault();
-    const created = await api.createProject(newProject);
-    setProjects(prev => [created, ...prev]);
-    setIsModalOpen(false);
-    setNewProject({ name: '', projectKey: '', description: '', status: 'ACTIVE', priority: 'HIGH' });
+    setLoading(true);
+    setErrorMsg('');
+
+    const res = await api.createProject({
+      ...newProject,
+      projectKey: newProject.projectKey.toUpperCase().trim(),
+      leadUserId: user?.id || '00000000-0000-0000-0000-000000000001'
+    });
+
+    setLoading(false);
+    if (res.success && res.data) {
+      setProjects(prev => [res.data, ...prev]);
+      setIsModalOpen(false);
+      setNewProject({
+        name: '',
+        projectKey: '',
+        projectType: 'SOFTWARE',
+        description: '',
+        startDate: new Date().toISOString().split('T')[0],
+        targetEndDate: new Date(Date.now() + 90 * 86400000).toISOString().split('T')[0]
+      });
+    } else {
+      setErrorMsg(res.error || 'Failed to create project');
+    }
   };
 
   const filteredProjects = projects.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
-                          p.projectKey.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = (p.name || '').toLowerCase().includes(search.toLowerCase()) ||
+                          (p.projectKey || '').toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === 'ALL' || p.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -52,7 +78,7 @@ export default function ProjectsPage() {
             Manage enterprise project repositories, team assignments, and delivery status
           </p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="btn btn-primary">
+        <button onClick={() => { setIsModalOpen(true); setErrorMsg(''); }} className="btn btn-primary">
           <Plus size={16} /> New Project
         </button>
       </div>
@@ -84,139 +110,198 @@ export default function ProjectsPage() {
         </div>
       </div>
 
-      {/* Projects Grid */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
-        gap: '1.5rem'
-      }}>
-        {filteredProjects.map(proj => (
-          <div key={proj.id} className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                <span className="badge badge-primary">{proj.projectKey}</span>
-                <span className={`badge badge-${proj.status === 'ACTIVE' ? 'success' : (proj.status === 'COMPLETED' ? 'info' : 'warning')}`}>
-                  {proj.status}
-                </span>
-              </div>
-
-              <h3 style={{ fontSize: '1.15rem', marginBottom: '0.5rem' }}>{proj.name}</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.825rem', lineHeight: 1.4, marginBottom: '1.25rem' }}>
-                {proj.description}
-              </p>
-            </div>
-
-            <div>
-              {/* Progress */}
-              <div style={{ marginBottom: '1rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
-                  <span>Completion</span>
-                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{proj.progress}%</span>
+      {/* Empty State */}
+      {filteredProjects.length === 0 ? (
+        <div className="card" style={{ textAlign: 'center', padding: '3.5rem 1rem' }}>
+          <FolderKanban size={48} color="var(--brand-primary)" style={{ opacity: 0.6, marginBottom: '1rem' }} />
+          <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>No Projects Found</h3>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', maxWidth: '400px', margin: '0 auto 1.5rem' }}>
+            Start managing issues, sprints, and code deliverables by creating your first project workspace.
+          </p>
+          <button onClick={() => { setIsModalOpen(true); setErrorMsg(''); }} className="btn btn-primary">
+            <Plus size={16} /> Create Your First Project
+          </button>
+        </div>
+      ) : (
+        /* Projects Grid */
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+          gap: '1.5rem'
+        }}>
+          {filteredProjects.map(proj => (
+            <div key={proj.id} className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                  <span className="badge badge-primary">{proj.projectKey}</span>
+                  <span className={`badge badge-${proj.status === 'ACTIVE' ? 'success' : (proj.status === 'COMPLETED' ? 'info' : 'warning')}`}>
+                    {proj.status || 'ACTIVE'}
+                  </span>
                 </div>
-                <div className="progress-container">
-                  <div className="progress-fill" style={{ width: `${proj.progress}%` }} />
-                </div>
-              </div>
 
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                paddingTop: '0.75rem',
-                borderTop: '1px solid var(--border-subtle)',
-                fontSize: '0.775rem',
-                color: 'var(--text-secondary)'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <Users size={14} /> {proj.teamSize} members
-                </div>
                 <Link
                   to={`/projects/${proj.id}`}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--brand-primary)', textDecoration: 'none', fontWeight: 600 }}
+                  style={{
+                    fontSize: '1.15rem',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    color: 'var(--text-primary)',
+                    textDecoration: 'none',
+                    marginBottom: '0.5rem'
+                  }}
                 >
-                  Workspace <ArrowUpRight size={14} />
+                  {proj.name}
+                  <ArrowUpRight size={16} color="var(--brand-primary)" />
                 </Link>
+
+                <p style={{
+                  fontSize: '0.825rem',
+                  color: 'var(--text-secondary)',
+                  lineHeight: 1.5,
+                  marginBottom: '1.25rem'
+                }}>
+                  {proj.description || 'No description provided.'}
+                </p>
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '0.35rem' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Type</span>
+                  <span style={{ fontWeight: 600 }}>{proj.projectType || 'SOFTWARE'}</span>
+                </div>
+
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  borderTop: '1px solid var(--border-subtle)',
+                  paddingTop: '0.85rem',
+                  marginTop: '0.85rem',
+                  fontSize: '0.75rem'
+                }}>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <Link to={`/boards`} className="btn btn-secondary btn-sm" style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}>
+                      <Kanban size={13} /> Board
+                    </Link>
+                    <Link to={`/sprints`} className="btn btn-secondary btn-sm" style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}>
+                      <Zap size={13} /> Sprints
+                    </Link>
+                  </div>
+                  <span style={{ color: 'var(--text-muted)' }}>ID: {(proj.id || '').substring(0, 8)}...</span>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* New Project Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title="Create New Project"
-        footer={
-          <>
-            <button onClick={() => setIsModalOpen(false)} className="btn btn-secondary">Cancel</button>
-            <button onClick={handleCreateProject} className="btn btn-primary">Create Workspace</button>
-          </>
-        }
       >
         <form onSubmit={handleCreateProject}>
+          {errorMsg && (
+            <div style={{
+              padding: '0.75rem',
+              background: 'rgba(239, 68, 68, 0.12)',
+              border: '1px solid rgba(239, 68, 68, 0.4)',
+              color: 'var(--status-danger)',
+              borderRadius: 'var(--radius-md)',
+              marginBottom: '1.25rem',
+              fontSize: '0.825rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}>
+              <AlertCircle size={16} />
+              <span>{errorMsg}</span>
+            </div>
+          )}
+
           <div className="input-group">
-            <label className="input-label">Project Name</label>
+            <label className="input-label">Project Name *</label>
             <input
               type="text"
               className="input-field"
-              placeholder="e.g. Distributed Payment Gateway"
               value={newProject.name}
               onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
+              placeholder="e.g. Core Banking Platform"
               required
-            />
-          </div>
-
-          <div className="input-group">
-            <label className="input-label">Project Key (3-6 chars)</label>
-            <input
-              type="text"
-              className="input-field"
-              placeholder="e.g. DPG"
-              value={newProject.projectKey}
-              onChange={(e) => setNewProject({ ...newProject, projectKey: e.target.value.toUpperCase() })}
-              required
-            />
-          </div>
-
-          <div className="input-group">
-            <label className="input-label">Description</label>
-            <textarea
-              className="textarea-field"
-              rows="3"
-              placeholder="Goals and scope of this project..."
-              value={newProject.description}
-              onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
             />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="input-group">
-              <label className="input-label">Initial Status</label>
-              <select
-                className="select-field"
-                value={newProject.status}
-                onChange={(e) => setNewProject({ ...newProject, status: e.target.value })}
-              >
-                <option value="PLANNING">Planning</option>
-                <option value="ACTIVE">Active</option>
-                <option value="ON_HOLD">On Hold</option>
-              </select>
+              <label className="input-label">Project Key * (2-10 UPPERCASE)</label>
+              <input
+                type="text"
+                className="input-field"
+                value={newProject.projectKey}
+                onChange={(e) => setNewProject({ ...newProject, projectKey: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })}
+                placeholder="e.g. CBP"
+                maxLength={10}
+                required
+              />
             </div>
 
             <div className="input-group">
-              <label className="input-label">Priority</label>
+              <label className="input-label">Project Type *</label>
               <select
-                className="select-field"
-                value={newProject.priority}
-                onChange={(e) => setNewProject({ ...newProject, priority: e.target.value })}
+                className="input-field"
+                value={newProject.projectType}
+                onChange={(e) => setNewProject({ ...newProject, projectType: e.target.value })}
               >
-                <option value="LOW">Low</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="HIGH">High</option>
-                <option value="CRITICAL">Critical</option>
+                <option value="SOFTWARE">Software Development</option>
+                <option value="BUSINESS">Business Initiative</option>
+                <option value="OPERATIONS">Cloud Operations</option>
               </select>
             </div>
+          </div>
+
+          <div className="input-group">
+            <label className="input-label">Description</label>
+            <textarea
+              className="input-field"
+              rows={3}
+              value={newProject.description}
+              onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
+              placeholder="Primary deliverables, stakeholders, and scope..."
+            />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="input-group">
+              <label className="input-label">Start Date</label>
+              <input
+                type="date"
+                className="input-field"
+                value={newProject.startDate}
+                onChange={(e) => setNewProject({ ...newProject, startDate: e.target.value })}
+              />
+            </div>
+
+            <div className="input-group">
+              <label className="input-label">Target Completion</label>
+              <input
+                type="date"
+                className="input-field"
+                value={newProject.targetEndDate}
+                onChange={(e) => setNewProject({ ...newProject, targetEndDate: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+            <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-secondary">
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? 'Creating Project...' : 'Create Project'}
+            </button>
           </div>
         </form>
       </Modal>

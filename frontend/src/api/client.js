@@ -11,7 +11,7 @@ import {
 
 const apiClient = axios.create({
   baseURL: '/api',
-  timeout: 8000,
+  timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -39,67 +39,143 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// High-level API Service Object with Graceful Live / Fallback Support
+// High-level API Service Object
 export const api = {
-  // Auth
-  login: async (credentials) => {
+  // =========================================
+  // AUTHENTICATION
+  // =========================================
+  register: async (userData) => {
     try {
-      const res = await apiClient.post('/auth/login', credentials);
-      return res.data;
-    } catch {
-      return {
-        success: true,
-        data: {
-          accessToken: 'demo-jwt-token-xyz',
-          userId: 'u1-admin',
-          email: credentials.email || 'admin@apexcloud.io',
-          firstName: 'Sarah',
-          lastName: 'Connor',
-          roles: ['ROLE_ADMIN']
-        }
-      };
+      const res = await apiClient.post('/auth/register', userData);
+      return { success: true, data: res.data?.data || res.data };
+    } catch (err) {
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Registration failed';
+      return { success: false, error: msg };
     }
   },
 
-  // Organizations
+  login: async (credentials) => {
+    try {
+      const res = await apiClient.post('/auth/login', credentials);
+      return { success: true, data: res.data?.data || res.data };
+    } catch (err) {
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Invalid credentials';
+      return { success: false, error: msg };
+    }
+  },
+
+  // =========================================
+  // ORGANIZATIONS (TENANTS)
+  // =========================================
   getOrganizations: async () => {
     try {
       const res = await apiClient.get('/v1/organizations');
-      return res.data?.data || DEMO_ORGS;
+      const items = res.data?.data?.content || res.data?.data || [];
+      return Array.isArray(items) && items.length > 0 ? items : (Array.isArray(items) ? items : DEMO_ORGS);
     } catch {
       return DEMO_ORGS;
     }
   },
 
-  // Projects
+  createOrganization: async (orgData) => {
+    try {
+      const res = await apiClient.post('/v1/organizations', orgData);
+      return { success: true, data: res.data?.data || res.data };
+    } catch (err) {
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to create organization';
+      return { success: false, error: msg };
+    }
+  },
+
+  // =========================================
+  // PROJECTS
+  // =========================================
   getProjects: async () => {
     try {
       const res = await apiClient.get('/v1/projects');
-      return res.data?.data?.content || res.data?.data || DEMO_PROJECTS;
+      const items = res.data?.data?.content || res.data?.data || [];
+      return Array.isArray(items) ? items : DEMO_PROJECTS;
     } catch {
       return DEMO_PROJECTS;
+    }
+  },
+
+  getProjectById: async (id) => {
+    try {
+      const res = await apiClient.get(`/v1/projects/${id}`);
+      return res.data?.data || null;
+    } catch {
+      return null;
     }
   },
 
   createProject: async (project) => {
     try {
       const res = await apiClient.post('/v1/projects', project);
-      return res.data?.data;
-    } catch {
-      return {
-        ...project,
-        id: 'p-' + Date.now(),
-        progress: 0,
-        teamSize: 1
-      };
+      return { success: true, data: res.data?.data || res.data };
+    } catch (err) {
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to create project';
+      return { success: false, error: msg };
     }
   },
 
-  // Tasks
-  getTasks: async (projectId) => {
+  // =========================================
+  // SPRINTS
+  // =========================================
+  getSprints: async (projectId) => {
     try {
-      const res = await apiClient.get(`/v1/tasks?projectId=${projectId || ''}`);
-      return res.data?.data?.content || res.data?.data || DEMO_TASKS;
+      const query = projectId ? `?projectId=${projectId}` : '';
+      const res = await apiClient.get(`/v1/sprints${query}`);
+      const items = res.data?.data?.content || res.data?.data || [];
+      return Array.isArray(items) ? items : DEMO_SPRINTS;
+    } catch {
+      return DEMO_SPRINTS;
+    }
+  },
+
+  createSprint: async (sprintData) => {
+    try {
+      const res = await apiClient.post('/v1/sprints', sprintData);
+      return { success: true, data: res.data?.data || res.data };
+    } catch (err) {
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to create sprint';
+      return { success: false, error: msg };
+    }
+  },
+
+  startSprint: async (sprintId, payload = {}) => {
+    try {
+      const res = await apiClient.post(`/v1/sprints/${sprintId}/start`, payload);
+      return { success: true, data: res.data?.data || res.data };
+    } catch (err) {
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to start sprint';
+      return { success: false, error: msg };
+    }
+  },
+
+  completeSprint: async (sprintId, payload = {}) => {
+    try {
+      const res = await apiClient.post(`/v1/sprints/${sprintId}/complete`, payload);
+      return { success: true, data: res.data?.data || res.data };
+    } catch (err) {
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to complete sprint';
+      return { success: false, error: msg };
+    }
+  },
+
+  // =========================================
+  // TASKS & KANBAN
+  // =========================================
+  getTasks: async (projectId, sprintId) => {
+    try {
+      const params = new URLSearchParams();
+      if (projectId) params.append('projectId', projectId);
+      if (sprintId) params.append('sprintId', sprintId);
+      const queryString = params.toString() ? `?${params.toString()}` : '';
+
+      const res = await apiClient.get(`/v1/tasks${queryString}`);
+      const items = res.data?.data?.content || res.data?.data || [];
+      return Array.isArray(items) ? items : DEMO_TASKS;
     } catch {
       return DEMO_TASKS;
     }
@@ -108,50 +184,54 @@ export const api = {
   createTask: async (task) => {
     try {
       const res = await apiClient.post('/v1/tasks', task);
-      return res.data?.data;
-    } catch {
-      return {
-        ...task,
-        id: 't-' + Date.now(),
-        taskKey: 'NCB-' + Math.floor(100 + Math.random() * 900)
-      };
+      return { success: true, data: res.data?.data || res.data };
+    } catch (err) {
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to create task';
+      return { success: false, error: msg };
     }
   },
 
   updateTaskStatus: async (taskId, status) => {
     try {
       const res = await apiClient.patch(`/v1/tasks/${taskId}/status`, { status });
-      return res.data?.data;
-    } catch {
-      return { id: taskId, status };
+      return { success: true, data: res.data?.data || res.data };
+    } catch (err) {
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to update task status';
+      return { success: false, error: msg };
     }
   },
 
-  // Sprints
-  getSprints: async (projectId) => {
-    try {
-      const res = await apiClient.get(`/v1/sprints?projectId=${projectId || ''}`);
-      return res.data?.data?.content || res.data?.data || DEMO_SPRINTS;
-    } catch {
-      return DEMO_SPRINTS;
-    }
-  },
-
-  // Resources
+  // =========================================
+  // RESOURCES & CAPACITY
+  // =========================================
   getResources: async () => {
     try {
       const res = await apiClient.get('/v1/resources');
-      return res.data?.data?.content || res.data?.data || DEMO_RESOURCES;
+      const items = res.data?.data?.content || res.data?.data || [];
+      return Array.isArray(items) ? items : DEMO_RESOURCES;
     } catch {
       return DEMO_RESOURCES;
     }
   },
 
-  // Notifications
+  allocateResource: async (allocationData) => {
+    try {
+      const res = await apiClient.post('/v1/resources/allocations', allocationData);
+      return { success: true, data: res.data?.data || res.data };
+    } catch (err) {
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to allocate resource';
+      return { success: false, error: msg };
+    }
+  },
+
+  // =========================================
+  // NOTIFICATIONS
+  // =========================================
   getNotifications: async (recipientId) => {
     try {
       const res = await apiClient.get(`/v1/notifications?recipientId=${recipientId || ''}`);
-      return res.data?.data?.content || res.data?.data || DEMO_NOTIFICATIONS;
+      const items = res.data?.data?.content || res.data?.data || [];
+      return Array.isArray(items) ? items : DEMO_NOTIFICATIONS;
     } catch {
       return DEMO_NOTIFICATIONS;
     }
@@ -160,18 +240,39 @@ export const api = {
   getUnreadCount: async (recipientId) => {
     try {
       const res = await apiClient.get(`/v1/notifications/unread-count?recipientId=${recipientId || ''}`);
-      return res.data?.data?.unreadCount ?? 2;
+      return res.data?.data?.unreadCount ?? 0;
     } catch {
-      return 2;
+      return 0;
     }
   },
 
-  // Audit Logs
+  markAsRead: async (notificationId) => {
+    try {
+      const res = await apiClient.patch(`/v1/notifications/${notificationId}/read`);
+      return { success: true, data: res.data?.data };
+    } catch {
+      return { success: false };
+    }
+  },
+
+  markAllAsRead: async () => {
+    try {
+      const res = await apiClient.post('/v1/notifications/mark-all-read');
+      return { success: true, data: res.data?.data };
+    } catch {
+      return { success: false };
+    }
+  },
+
+  // =========================================
+  // AUDIT LOGS
+  // =========================================
   getAuditLogs: async (criteria = {}) => {
     try {
       const params = new URLSearchParams(criteria).toString();
       const res = await apiClient.get(`/v1/audit?${params}`);
-      return res.data?.data?.content || res.data?.data || DEMO_AUDIT_LOGS;
+      const items = res.data?.data?.content || res.data?.data || [];
+      return Array.isArray(items) ? items : DEMO_AUDIT_LOGS;
     } catch {
       return DEMO_AUDIT_LOGS;
     }
@@ -180,31 +281,21 @@ export const api = {
   getAuditSummary: async () => {
     try {
       const res = await apiClient.get('/v1/audit/summary');
-      return res.data?.data;
+      return res.data?.data || null;
     } catch {
-      return {
-        totalAuditLogs: 148,
-        countByAction: { TASK_STATUS_CHANGED: 45, RESOURCE_ALLOCATED: 32, SPRINT_STARTED: 18, USER_LOGIN: 53 },
-        countByEntityType: { TASK: 45, RESOURCE: 32, SPRINT: 18, AUTH: 53 },
-        countByStatus: { SUCCESS: 148 }
-      };
+      return null;
     }
   },
 
-  // Analytics Dashboard
+  // =========================================
+  // ANALYTICS DASHBOARD
+  // =========================================
   getDashboardAnalytics: async () => {
     try {
       const res = await apiClient.get('/v1/analytics/dashboard');
-      return res.data?.data;
+      return res.data?.data || null;
     } catch {
-      return {
-        totalProjects: 3,
-        totalTasks: 48,
-        completedTasks: 35,
-        overallCompletionRate: 72.9,
-        averageSprintVelocity: 42.5,
-        healthBreakdown: { ON_TRACK: 2, AT_RISK: 1, DELAYED: 0 }
-      };
+      return null;
     }
   }
 };
